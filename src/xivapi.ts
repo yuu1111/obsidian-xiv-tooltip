@@ -38,7 +38,8 @@ export function buildIconUrl(path: string): string {
  */
 function buildQuery(name: string, lang: Language, op: "=" | "~"): string {
 	const field = lang === "ja" ? "Name@ja" : "Name";
-	return `${field}${op}"${name}"`;
+	// ClassJobCategory>=1 で廃止アクション(row_id=0)を除外する
+	return `+${field}${op}"${name}" +ClassJobCategory>=1`;
 }
 
 /**
@@ -122,7 +123,36 @@ export class ActionCache {
 	private readonly inflight = new Map<string, Promise<ActionData | null>>();
 
 	/**
+	 * @description キャッシュから同期的にデータを返す。
+	 *
+	 * @param name - アクション名
+	 * @returns キャッシュ済みなら `ActionData | null`、未取得なら `undefined`
+	 */
+	getCached(name: string): ActionData | null | undefined {
+		if (!this.cache.has(name)) return undefined;
+		return this.cache.get(name) ?? null;
+	}
+
+	/**
+	 * @description バックグラウンドでフェッチを開始し、完了時にコールバックを呼ぶ。
+	 * 既にキャッシュ済みまたは取得中の場合は重複フェッチしない。
+	 *
+	 * @param name - アクション名
+	 * @param onLoad - データ取得完了時のコールバック
+	 */
+	prefetch(name: string, onLoad: () => void): void {
+		if (this.cache.has(name)) return;
+		const pending = this.inflight.get(name);
+		if (pending) {
+			void pending.then(onLoad);
+			return;
+		}
+		void this.get(name).then(onLoad);
+	}
+
+	/**
 	 * @description キャッシュ優先でアクションデータを取得する
+	 *
 	 * @param name - アクション名
 	 * @returns アクションデータ (未発見時はnull)
 	 */

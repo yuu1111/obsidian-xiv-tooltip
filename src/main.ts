@@ -2,6 +2,7 @@ import { Plugin } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
 
 import { ActionCache } from "./xivapi";
+import { createLivePreviewExtension } from "./livepreview";
 import type { ActionData, Part } from "./types";
 
 /**
@@ -24,6 +25,7 @@ export default class XivTooltipPlugin extends Plugin {
 
 	override async onload(): Promise<void> {
 		this.registerMarkdownPostProcessor(this.processElement.bind(this));
+		this.registerEditorExtension(createLivePreviewExtension(this.cache));
 	}
 
 	override onunload(): void {
