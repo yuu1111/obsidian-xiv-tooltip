@@ -1,0 +1,27 @@
+{
+	"name": "obsidian-xiv-tooltip",
+	"version": "1.0.0",
+	"description": "FF14 action icons with tooltips for Obsidian",
+	"main": "main.js",
+	"scripts": {
+		"dev": "bun esbuild.config.ts",
+		"build": "bun esbuild.config.ts production",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check .",
+		"format": "biome check --write --unsafe ."
+	},
+	"author": "yuu1111",
+	"license": "MIT",
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.13",
+		"@types/node": "^25.6.0",
+		"@yuu1111/biome-config": "^1.0.4",
+		"builtin-modules": "^5.1.0",
+		"esbuild": "^0.28.0",
+		"obsidian": "^1.12.3",
+		"typescript": "^6.0.3"
+	},
+	"dependencies": {
+		"@yuu1111/tsconfig": "^1.0.3"
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-xiv-tooltip",
+	"name": "Obsidian XIV Tooltip",
+	"version": "1.0.0",
+	"minAppVersion": "1.0.0",
+	"description": "{アクション名} / {ActionName} 記法でFF14アクションアイコンとツールチップを表示",
+	"author": "yuu1111",
+	"authorUrl": "https://github.com/yuu1111",
+	"isDesktopOnly": false
+}

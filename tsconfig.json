@@ -1,0 +1,8 @@
+{
+	"extends": "@yuu1111/tsconfig/base.json",
+	"compilerOptions": {
+		"lib": ["ESNext", "DOM"],
+		"outDir": "dist"
+	},
+	"include": ["src"]
+}
