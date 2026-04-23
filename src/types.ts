@@ -20,12 +20,26 @@ export interface XivApiSearchResult {
 	row_id: number;
 	fields: {
 		Name: string;
-		Description?: string;
 		Icon?: XivApiIcon;
 	};
 }
 
 export interface XivApiSearchResponse {
-	cursor: string | null;
+	next: string | null;
 	results: XivApiSearchResult[];
 }
+
+export interface XivApiSheetRow {
+	row_id: number;
+	fields: {
+		Name: string;
+		Icon?: XivApiIcon;
+	};
+	transient?: {
+		Description?: string;
+	};
+}
+
+export type Part =
+	| { type: "text"; content: string }
+	| { type: "action"; name: string };

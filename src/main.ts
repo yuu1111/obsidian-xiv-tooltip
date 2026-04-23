@@ -2,10 +2,21 @@ import { Plugin } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
 
 import { ActionCache } from "./xivapi";
-import type { ActionData } from "./types";
+import type { ActionData, Part } from "./types";
 
+/**
+ * @description アクションパターンの正規表現 (`{アクション名}` 形式)
+ */
 const ACTION_PATTERN = /\{([^}]+)\}/g;
+
+/**
+ * @description テキストノード検索時にスキップするタグ名一覧
+ */
 const SKIP_TAGS = new Set(["CODE", "PRE", "SCRIPT", "STYLE", "A"]);
+
+/**
+ * @description Garland Toolsのアクション詳細ページベースURL
+ */
 const GARLAND_BASE = "https://garlandtools.org/db/#action";
 
 export default class XivTooltipPlugin extends Plugin {
@@ -19,15 +30,20 @@ export default class XivTooltipPlugin extends Plugin {
 		this.cache.clear();
 	}
 
+	/**
+	 * @description Markdown要素内のテキストノードを走査してアクションを置換する
+	 */
 	private processElement(element: HTMLElement, _ctx: MarkdownPostProcessorContext): void {
 		for (const node of this.collectTextNodes(element)) {
-			ACTION_PATTERN.lastIndex = 0;
-			if (ACTION_PATTERN.test(node.textContent ?? "")) {
-				this.processTextNode(node);
-			}
+			this.processTextNode(node);
 		}
 	}
 
+	/**
+	 * @description スキップタグの内側を除くテキストノードを収集する
+	 * @param root - 走査対象のルート要素
+	 * @returns テキストノード一覧
+	 */
 	private collectTextNodes(root: HTMLElement): Text[] {
 		const nodes: Text[] = [];
 		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -48,20 +64,23 @@ export default class XivTooltipPlugin extends Plugin {
 		return nodes;
 	}
 
+	/**
+	 * @description テキストノードを解析し、アクションパターンをスパン要素に置換する
+	 * @param textNode - 処理対象のテキストノード
+	 */
 	private processTextNode(textNode: Text): void {
 		const text = textNode.textContent ?? "";
-		type Part = { type: "text"; content: string } | { type: "action"; name: string };
 		const parts: Part[] = [];
 		let lastIndex = 0;
-		const pattern = /\{([^}]+)\}/g;
+		ACTION_PATTERN.lastIndex = 0;
 		let match: RegExpExecArray | null;
 
-		while ((match = pattern.exec(text)) !== null) {
+		while ((match = ACTION_PATTERN.exec(text)) !== null) {
 			if (match.index > lastIndex) {
 				parts.push({ type: "text", content: text.slice(lastIndex, match.index) });
 			}
 			parts.push({ type: "action", name: match[1] ?? "" });
-			lastIndex = pattern.lastIndex;
+			lastIndex = ACTION_PATTERN.lastIndex;
 		}
 		if (lastIndex < text.length) {
 			parts.push({ type: "text", content: text.slice(lastIndex) });
@@ -82,6 +101,11 @@ export default class XivTooltipPlugin extends Plugin {
 		textNode.parentNode?.replaceChild(fragment, textNode);
 	}
 
+	/**
+	 * @description ローディング状態のプレースホルダースパンを生成する
+	 * @param name - アクション名
+	 * @returns プレースホルダー要素
+	 */
 	private createPlaceholder(name: string): HTMLSpanElement {
 		const span = document.createElement("span");
 		span.className = "xiv-action xiv-action-loading";
@@ -89,6 +113,11 @@ export default class XivTooltipPlugin extends Plugin {
 		return span;
 	}
 
+	/**
+	 * @description APIからアクションデータを取得してスパン要素を更新する
+	 * @param name - アクション名
+	 * @param span - 更新対象のスパン要素
+	 */
 	private async fetchAndUpdate(name: string, span: HTMLSpanElement): Promise<void> {
 		try {
 			const data = await this.cache.get(name);
@@ -117,6 +146,11 @@ export default class XivTooltipPlugin extends Plugin {
 		}
 	}
 
+	/**
+	 * @description アクション情報のツールチップDOMを生成して親要素に追加する
+	 * @param parent - ツールチップを追加する親スパン
+	 * @param data - 表示するアクションデータ
+	 */
 	private appendTooltip(parent: HTMLSpanElement, data: ActionData): void {
 		const tooltip = parent.createEl("div", { cls: "xiv-tooltip" });
 		tooltip.createEl("div", { cls: "xiv-tooltip-name", text: data.displayName });
