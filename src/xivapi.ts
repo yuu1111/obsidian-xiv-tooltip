@@ -1,41 +1,16 @@
 import type { ActionData, Language, XivApiSearchResponse, XivApiSheetRow } from "./types";
 
-/**
- * @description XIVAPI v2のベースURL
- */
 const XIVAPI_BASE = "https://v2.xivapi.com";
-
-/**
- * @description CJK文字判定用正規表現 (ひらがな・カタカナ・漢字)
- */
 const HAS_CJK = /[぀-ヿ㐀-䶿一-鿿]/;
 
-/**
- * @description テキストに含まれる文字から言語を推定する
- * @param text - 判定対象テキスト
- * @returns 検出された言語コード
- */
-export function detectLanguage(text: string): Language {
+function detectLanguage(text: string): Language {
 	return HAS_CJK.test(text) ? "ja" : "en";
 }
 
-/**
- * @description アイコンアセットのURLを生成する
- * @param path - XIVAPIのアセットパス
- * @returns PNG形式のアイコンURL
- */
-export function buildIconUrl(path: string): string {
+function buildIconUrl(path: string): string {
 	return `${XIVAPI_BASE}/api/asset?path=${encodeURIComponent(path)}&format=png`;
 }
 
-/**
- * @description XIVAPI v2 search query文字列を生成する
- *
- * @param name - 検索するアクション名
- * @param lang - 検索対象の言語
- * @param op - `=` 完全一致 / `~` 部分一致
- * @returns クエリ文字列
- */
 function buildQuery(name: string, lang: Language, op: "=" | "~"): string {
 	const field = lang === "ja" ? "Name@ja" : "Name";
 	// ClassJobCategory>=1 で廃止アクション(row_id=0)を除外する
@@ -43,13 +18,11 @@ function buildQuery(name: string, lang: Language, op: "=" | "~"): string {
 }
 
 /**
- * @description アクション名からXIVAPIのrow_idを解決する。
- * 完全一致を優先し、一致しない場合は部分一致にフォールバックする。
+ * 完全一致を優先し、未ヒットなら部分一致にフォールバックして row_id を解決する。
  *
- * @param name - 検索するアクション名
- * @param lang - 検索対象の言語
- * @returns 見つかったrow_id、未発見時は `null`
- * @throws XIVAPI HTTPエラー時
+ * @param name - アクション名
+ * @param lang - 検索言語
+ * @returns 見つかった row_id、未発見時は `null`
  */
 async function findRowId(name: string, lang: Language): Promise<number | null> {
 	for (const op of ["=", "~"] as const) {
@@ -74,13 +47,8 @@ async function findRowId(name: string, lang: Language): Promise<number | null> {
 }
 
 /**
- * @description Action シートの1行をrow_idで取得する。
+ * Action シートの1行を取得する。
  * `transient.Description` にアクション説明文が含まれる。
- *
- * @param rowId - 取得するrow_id
- * @param lang - 返却データの言語
- * @returns シート行データ
- * @throws XIVAPI HTTPエラー時
  */
 async function fetchSheetRow(rowId: number, lang: Language): Promise<XivApiSheetRow> {
 	const params = new URLSearchParams({ language: lang, fields: "Name,Icon" });
@@ -89,15 +57,6 @@ async function fetchSheetRow(rowId: number, lang: Language): Promise<XivApiSheet
 	return res.json() as Promise<XivApiSheetRow>;
 }
 
-/**
- * @description アクション名でXIVAPIを検索し、アイコン・説明文を含むデータを返す。
- * 検索(row_id解決)→シート取得(アイコン+説明文)の2段階で取得する。
- *
- * @param name - アクション名
- * @param lang - 検索・取得言語
- * @returns アクションデータ、未発見時は `null`
- * @throws XIVAPI HTTPエラー時
- */
 async function searchAction(name: string, lang: Language): Promise<ActionData | null> {
 	const rowId = await findRowId(name, lang);
 	if (rowId === null) return null;
@@ -115,17 +74,14 @@ async function searchAction(name: string, lang: Language): Promise<ActionData | 
 	};
 }
 
-/**
- * @description アクション検索結果のメモリキャッシュ。inflightマップで重複リクエストを排除する。
- */
+/** アクション検索結果のメモリキャッシュ。inflight マップで重複リクエストを排除する。 */
 export class ActionCache {
 	private readonly cache = new Map<string, ActionData | null>();
 	private readonly inflight = new Map<string, Promise<ActionData | null>>();
 
 	/**
-	 * @description キャッシュから同期的にデータを返す。
+	 * キャッシュから同期的にデータを返す。
 	 *
-	 * @param name - アクション名
 	 * @returns キャッシュ済みなら `ActionData | null`、未取得なら `undefined`
 	 */
 	getCached(name: string): ActionData | null | undefined {
@@ -134,11 +90,9 @@ export class ActionCache {
 	}
 
 	/**
-	 * @description バックグラウンドでフェッチを開始し、完了時にコールバックを呼ぶ。
-	 * 既にキャッシュ済みまたは取得中の場合は重複フェッチしない。
-	 *
-	 * @param name - アクション名
-	 * @param onLoad - データ取得完了時のコールバック
+	 * バックグラウンドでフェッチを開始し、完了時にコールバックを呼ぶ。
+	 * キャッシュ済みの場合は何もしない (onLoad は呼ばれない)。
+	 * 取得中の場合は既存 Promise にコールバックを追加する。
 	 */
 	prefetch(name: string, onLoad: () => void): void {
 		if (this.cache.has(name)) return;
@@ -150,12 +104,6 @@ export class ActionCache {
 		void this.get(name).then(onLoad);
 	}
 
-	/**
-	 * @description キャッシュ優先でアクションデータを取得する
-	 *
-	 * @param name - アクション名
-	 * @returns アクションデータ (未発見時はnull)
-	 */
 	async get(name: string): Promise<ActionData | null> {
 		if (this.cache.has(name)) return this.cache.get(name) as ActionData | null;
 		const pending = this.inflight.get(name);
@@ -175,9 +123,6 @@ export class ActionCache {
 		return promise;
 	}
 
-	/**
-	 * @description キャッシュと進行中リクエストをすべてクリアする
-	 */
 	clear(): void {
 		this.cache.clear();
 		this.inflight.clear();
