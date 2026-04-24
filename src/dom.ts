@@ -2,8 +2,11 @@ import { GARLAND_BASE } from "./constants";
 import type { ActionData } from "./types";
 
 /**
- * アクション名とデータを受け取り、既存の span 要素を icon + label + tooltip で埋める。
- * Reading View (main.ts) と Live Preview (livepreview.ts) の両方から呼ばれる。
+ * @description span要素をアイコン+ラベル+ツールチップで構成する。
+ * Reading ViewとLive Previewの両方から利用される。
+ * @param span - 操作対象のspan要素
+ * @param name - マークダウン中に記述されたアクション名
+ * @param data - XIVAPIから取得したアクションデータ
  */
 export function populateActionSpan(span: HTMLElement, name: string, data: ActionData): void {
 	if (data.iconUrl) {

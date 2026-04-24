@@ -6,15 +6,24 @@ import { populateActionSpan } from "./dom";
 import type { ActionCache } from "./xivapi";
 import type { ActionData } from "./types";
 
+/**
+ * @description マークダウン中のアクション構文を検出する正規表現
+ */
 const ACTION_PATTERN = /\{([^}]+)\}/g;
 
 /**
- * データ読み込み完了を通知する StateEffect。
- * CM6 の ViewPlugin.update() でこのエフェクトを検出して装飾を再構築する。
+ * @description データ読み込み完了をViewPluginに通知するStateEffect
  */
 export const dataLoadedEffect = StateEffect.define<void>();
 
+/**
+ * @description Live PreviewでFFXIVアクションを表示するCM6ウィジェット
+ */
 class XivActionWidget extends WidgetType {
+	/**
+	 * @param name - アクション名
+	 * @param data - アクションデータ。未取得時はnull @optional
+	 */
 	constructor(
 		private readonly name: string,
 		private readonly data: ActionData | null,
@@ -22,10 +31,16 @@ class XivActionWidget extends WidgetType {
 		super();
 	}
 
+	/**
+	 * @description name・iconUrlが同一なら再描画不要と判断する
+	 */
 	override eq(other: XivActionWidget): boolean {
 		return this.name === other.name && this.data?.iconUrl === other.data?.iconUrl;
 	}
 
+	/**
+	 * @description span要素を生成しアクション表示を構築する
+	 */
 	override toDOM(): HTMLElement {
 		const span = document.createElement("span");
 		span.className = "xiv-action";
@@ -39,16 +54,18 @@ class XivActionWidget extends WidgetType {
 		return span;
 	}
 
+	/**
+	 * @description クリックイベントをウィジェットに渡す
+	 */
 	override ignoreEvent(): boolean {
 		return false;
 	}
 }
 
 /**
- * Live Preview モードで FF14 アクションを装飾する CM6 ViewPlugin。
- * カーソルが `{...}` の範囲内にある間は raw 表示に戻す。
- *
+ * @description カーソルが{...}範囲内にある間はraw表示に戻すLive Preview用CM6拡張を生成する
  * @param cache - アクションデータのキャッシュ
+ * @returns CM6 ViewPlugin拡張
  */
 export function createLivePreviewExtension(cache: ActionCache) {
 	return ViewPlugin.fromClass(
@@ -72,6 +89,12 @@ export function createLivePreviewExtension(cache: ActionCache) {
 	);
 }
 
+/**
+ * @description カーソル範囲外の{...}パターンをウィジェットDecorationに置換するDecorationSetを構築する
+ * @param view - 操作対象のEditorView
+ * @param cache - アクションデータのキャッシュ
+ * @returns 構築済みDecorationSet
+ */
 function buildDecorations(view: EditorView, cache: ActionCache): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
 	const selRanges = view.state.selection.ranges;
