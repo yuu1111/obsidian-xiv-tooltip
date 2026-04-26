@@ -9,7 +9,7 @@ import type { Part } from "./types";
 /**
  * @description マークダウン中のアクション構文を検出する正規表現
  */
-const ACTION_PATTERN = /\{([^}]+)\}/g;
+const ACTION_PATTERN = /\{([^\n}]+)\}/g;
 
 /**
  * @description テキストノード走査をスキップするHTMLタグ名セット

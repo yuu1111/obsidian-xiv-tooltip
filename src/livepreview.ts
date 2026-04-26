@@ -9,7 +9,7 @@ import type { ActionData } from "./types";
 /**
  * @description マークダウン中のアクション構文を検出する正規表現
  */
-const ACTION_PATTERN = /\{([^}]+)\}/g;
+const ACTION_PATTERN = /\{([^\n}]+)\}/g;
 
 /**
  * @description データ読み込み完了をViewPluginに通知するStateEffect
