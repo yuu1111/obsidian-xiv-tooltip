@@ -8,7 +8,11 @@ import type { ActionData } from "./types";
  * @param name - マークダウン中に記述されたアクション名
  * @param data - XIVAPIから取得したアクションデータ
  */
-export function populateActionSpan(span: HTMLElement, name: string, data: ActionData): void {
+export function populateActionSpan(
+	span: HTMLElement,
+	name: string,
+	data: ActionData,
+): void {
 	if (data.iconUrl) {
 		const img = document.createElement("img");
 		img.src = data.iconUrl;

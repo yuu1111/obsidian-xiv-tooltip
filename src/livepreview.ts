@@ -1,10 +1,10 @@
-import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view";
 import { RangeSetBuilder, StateEffect } from "@codemirror/state";
 import type { DecorationSet, EditorView, ViewUpdate } from "@codemirror/view";
+import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view";
 
 import { populateActionSpan } from "./dom";
-import type { ActionCache } from "./xivapi";
 import type { ActionData } from "./types";
+import type { ActionCache } from "./xivapi";
 
 /**
  * @description マークダウン中のアクション構文を検出する正規表現
@@ -35,7 +35,9 @@ class XivActionWidget extends WidgetType {
 	 * @description name・iconUrlが同一なら再描画不要と判断する
 	 */
 	override eq(other: XivActionWidget): boolean {
-		return this.name === other.name && this.data?.iconUrl === other.data?.iconUrl;
+		return (
+			this.name === other.name && this.data?.iconUrl === other.data?.iconUrl
+		);
 	}
 
 	/**
@@ -80,7 +82,12 @@ export function createLivePreviewExtension(cache: ActionCache) {
 				const hasDataLoaded = update.transactions.some((tr) =>
 					tr.effects.some((e) => e.is(dataLoadedEffect)),
 				);
-				if (update.docChanged || update.viewportChanged || update.selectionSet || hasDataLoaded) {
+				if (
+					update.docChanged ||
+					update.viewportChanged ||
+					update.selectionSet ||
+					hasDataLoaded
+				) {
 					this.decorations = buildDecorations(update.view, cache);
 				}
 			}
@@ -102,14 +109,17 @@ function buildDecorations(view: EditorView, cache: ActionCache): DecorationSet {
 	for (const { from, to } of view.visibleRanges) {
 		const text = view.state.doc.sliceString(from, to);
 		ACTION_PATTERN.lastIndex = 0;
-		let match: RegExpExecArray | null;
+		let match = ACTION_PATTERN.exec(text);
 
-		while ((match = ACTION_PATTERN.exec(text)) !== null) {
+		while (match !== null) {
 			const start = from + match.index;
 			const end = start + match[0].length;
 			const name = match[1] ?? "";
 
-			if (selRanges.some((r) => r.from <= end && r.to >= start)) continue;
+			if (selRanges.some((r) => r.from <= end && r.to >= start)) {
+				match = ACTION_PATTERN.exec(text);
+				continue;
+			}
 
 			const cached = cache.getCached(name);
 
@@ -129,6 +139,7 @@ function buildDecorations(view: EditorView, cache: ActionCache): DecorationSet {
 					widget: new XivActionWidget(name, cached ?? null),
 				}),
 			);
+			match = ACTION_PATTERN.exec(text);
 		}
 	}
 

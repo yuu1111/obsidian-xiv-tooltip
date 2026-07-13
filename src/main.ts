@@ -1,10 +1,9 @@
-import { Plugin } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
-
-import { ActionCache } from "./xivapi";
-import { createLivePreviewExtension } from "./livepreview";
+import { Plugin } from "obsidian";
 import { populateActionSpan } from "./dom";
+import { createLivePreviewExtension } from "./livepreview";
 import type { Part } from "./types";
+import { ActionCache } from "./xivapi";
 
 /**
  * @description マークダウン中のアクション構文を検出する正規表現
@@ -41,7 +40,10 @@ export default class XivTooltipPlugin extends Plugin {
 	 * @description 処理対象HTMLを受け取り、内包するテキストノードを変換する
 	 * @param element - 走査対象の要素
 	 */
-	private processElement(element: HTMLElement, _ctx: MarkdownPostProcessorContext): void {
+	private processElement(
+		element: HTMLElement,
+		_ctx: MarkdownPostProcessorContext,
+	): void {
 		for (const node of this.collectTextNodes(element)) {
 			this.processTextNode(node);
 		}
@@ -81,14 +83,18 @@ export default class XivTooltipPlugin extends Plugin {
 		const parts: Part[] = [];
 		let lastIndex = 0;
 		ACTION_PATTERN.lastIndex = 0;
-		let match: RegExpExecArray | null;
+		let match = ACTION_PATTERN.exec(text);
 
-		while ((match = ACTION_PATTERN.exec(text)) !== null) {
+		while (match !== null) {
 			if (match.index > lastIndex) {
-				parts.push({ type: "text", content: text.slice(lastIndex, match.index) });
+				parts.push({
+					type: "text",
+					content: text.slice(lastIndex, match.index),
+				});
 			}
 			parts.push({ type: "action", name: match[1] ?? "" });
 			lastIndex = ACTION_PATTERN.lastIndex;
+			match = ACTION_PATTERN.exec(text);
 		}
 		if (lastIndex < text.length) {
 			parts.push({ type: "text", content: text.slice(lastIndex) });
@@ -126,7 +132,10 @@ export default class XivTooltipPlugin extends Plugin {
 	 * @param name - アクション名
 	 * @param span - 更新対象のspan要素
 	 */
-	private async fetchAndUpdate(name: string, span: HTMLSpanElement): Promise<void> {
+	private async fetchAndUpdate(
+		name: string,
+		span: HTMLSpanElement,
+	): Promise<void> {
 		try {
 			const data = await this.cache.get(name);
 			span.classList.remove("xiv-action-loading");

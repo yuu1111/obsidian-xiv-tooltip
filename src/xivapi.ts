@@ -1,4 +1,9 @@
-import type { ActionData, Language, XivApiSearchResponse, XivApiSheetRow } from "./types";
+import type {
+	ActionData,
+	Language,
+	XivApiSearchResponse,
+	XivApiSheetRow,
+} from "./types";
 
 /**
  * @description XIVAPI v2のベースURL
@@ -74,7 +79,10 @@ async function findRowId(name: string, lang: Language): Promise<number | null> {
  * @param lang - 取得言語
  * @returns Actionシートの1行データ
  */
-async function fetchSheetRow(rowId: number, lang: Language): Promise<XivApiSheetRow> {
+async function fetchSheetRow(
+	rowId: number,
+	lang: Language,
+): Promise<XivApiSheetRow> {
 	const params = new URLSearchParams({ language: lang, fields: "Name,Icon" });
 	const res = await fetch(`${XIVAPI_BASE}/api/sheet/Action/${rowId}?${params}`);
 	if (!res.ok) throw new Error(`XIVAPI sheet fetch failed: ${res.status}`);
@@ -87,7 +95,10 @@ async function fetchSheetRow(rowId: number, lang: Language): Promise<XivApiSheet
  * @param lang - 検索言語
  * @returns 取得成功時はActionData、未発見時はnull
  */
-async function searchAction(name: string, lang: Language): Promise<ActionData | null> {
+async function searchAction(
+	name: string,
+	lang: Language,
+): Promise<ActionData | null> {
 	const rowId = await findRowId(name, lang);
 	if (rowId === null) return null;
 
